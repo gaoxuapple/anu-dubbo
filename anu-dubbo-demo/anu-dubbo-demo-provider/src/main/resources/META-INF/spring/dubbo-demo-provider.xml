@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:dubbo="http://dubbo.apache.org/schema/dubbo"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans        http://www.springframework.org/schema/beans/spring-beans-4.3.xsd        http://dubbo.apache.org/schema/dubbo        http://dubbo.apache.org/schema/dubbo/dubbo.xsd">
+
+    <!-- 提供方应用信息，用于计算依赖关系 -->
+    <!--对应的配置类 com.alibaba.dubbo.config.ApplicationConfig
+        设置应用配置 name 应用名称
+        owner 应用负责人
+        version 应用版本号
+    -->
+    <dubbo:application name="demo-provider" owner="gao.xu" version="1.0.0"/>
+
+    <!-- 使用multicast广播注册中心暴露服务地址
+        使用组播网络机构有限制， 只是用小规模的应用开发，组播地址段必须在 224.0.0.0~239.255.255.255 之间
+        注意：组播不能配置成127.0.0.1，也不能配成机器的ip地址，必须是D段官博地址，也就是224.0.0.0到239.255.255.255之间的任意地址
+        使用组播方式，dubbo默认使用单播自己的地址给订阅者，需要配置  unicast=false  则广播给所有订阅者
+        如果一台机器上启动多个消费者进程，消费者需要声明unicast=false，否则只会有一个消费者能收到消息
+        对应的适配类 com.alibaba.dubbo.config.RegistryConfig
+        file 只对客户端生效，保存从注册中心下来的文件信息
+        id 设置抓册中心的标示
+     -->
+
+    <dubbo:registry id="simple-one" address="multicast://224.5.6.7:1234?unicast=false"  file="F:\code\learn\dubbo\dubbo-registry.cache" />
+    <!--
+        <dubbo:registry id="simple-two" protocol="multicast" address="224.5.6.7:1234" />
+        <dubbo:registry id="simple-three" address="multicast://224.5.6.7:1234?unicast=false" />
+        <dubbo:registry id="simple-four" address="multicast://224.5.6.7:1234" >
+            <dubbo:parameter key="unicast" value="false" />
+        </dubbo:registry>
+    -->
+
+    <!--使用zookeeper作为注册中心
+        建议使用2.3.3以上版本的尽量使用zookeeper作为注册中心
+    -->
+    <dubbo:registry id="simple-zookeeper-one" address="zookeeper://127.0.0.1:2181?client=zkclient" check="false"/>
+    <!--
+        <dubbo:registry id="simple-zookeeper-two" protocol="zookeeper" address="127.0.0.1:2181" client="zkclient" check="false"/>
+        <dubbo:registry id="colony-zookeeper-one" address="zookeeper://192.168.80.99:2181?backup=192.168.80.110:2181,192.168.80.182:2181" client="zkclient" check="false"/>
+        <dubbo:registry id="colony-zookeeper-two" protocol="zookeeper" address="192.168.80.99:2181,192.168.80.110:2181,192.168.80.182:2181" client="zkclient" check="false"/>
+    -->
+
+
+    <!-- 用dubbo协议在20880端口暴露服务
+    threadpool 线程池类型
+    threads  线程池大小
+    iothreads io线程池大小，一般是CPU个数+1
+    accepts  服务提供者接受连接数大小
+    payload  设置请求和响应报文字段大小（字节） 默认8M
+    serialization 协议序列化方式  dubbo协议默认使用hessian2
+    accesslog 是否输出日志，可以设置true/false  也可以设置一个文件路径，将日志输出到该文件中
+    register  默认true  该协议的服务是否注册到注册中心上
+    -->
+    <dubbo:protocol id="dubbo" name="dubbo" port="20880" threadpool="cached" threads="500" iothreads="3" accepts="200" payload="88388608" serialization="hessian2" accesslog="F:\code\learn\dubbo\logger.log" register="true"/>
+    <dubbo:protocol id="rmi" name="rmi" port="1099" serialization="java"/>
+    <dubbo:protocol id="http" name="http" port="8080" serialization="json"/>
+    <dubbo:protocol id="hession" name="hessian" port="9090" />
+
+
+
+    <!-- 声明需要暴露的服务接口 -->
+    <dubbo:service interface="com.anu.dubbo.demo.routine.DemoService" ref="demoServiceOne" version="1.0.0" group="one" registry="simple-one" protocol="dubbo"/>
+
+    <dubbo:service interface="com.anu.dubbo.demo.routine.DemoService" ref="demoService" version="2.0.0" group="two" registry="simple-zookeeper-one" protocol="rmi" />
+
+    <!-- 和本地bean一样实现服务 -->
+    <bean id="demoServiceOne" class="com.anu.dubbo.demo.provider.routine.DemoServiceImplOne" />
+    <bean id="demoService" class="com.anu.dubbo.demo.provider.routine.DemoServiceImpl" />
+</beans>
